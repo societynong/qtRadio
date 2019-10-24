@@ -13,8 +13,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="404">
-              <caret line="104" column="25" selection-start-line="104" selection-start-column="25" selection-end-line="104" selection-end-column="25" />
+            <state relative-caret-position="293">
+              <caret line="12" column="17" lean-forward="true" selection-start-line="11" selection-start-column="12" selection-end-line="12" selection-end-column="17" />
               <folding>
                 <element signature="e#1#12#0" expanded="true" />
               </folding>
@@ -43,8 +43,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/funs.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="900">
-              <caret line="39" selection-start-line="39" selection-end-line="39" />
+            <state relative-caret-position="497">
+              <caret line="39" column="47" lean-forward="true" selection-start-line="39" selection-start-column="47" selection-end-line="39" selection-end-column="47" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -105,15 +105,15 @@
       <list>
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/doc.md" />
-        <option value="$PROJECT_DIR$/funs.py" />
         <option value="$PROJECT_DIR$/ExploreTandSNR" />
+        <option value="$PROJECT_DIR$/funs.py" />
         <option value="$PROJECT_DIR$/main.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="74" />
-    <option name="y" value="-14" />
+    <option name="x" value="-272" />
+    <option name="y" value="-19" />
     <option name="width" value="1934" />
     <option name="height" value="1056" />
   </component>
@@ -231,24 +231,23 @@
       <workItem from="1571788912931" duration="4562000" />
       <workItem from="1571797712779" duration="305000" />
       <workItem from="1571798041691" duration="16515000" />
-      <workItem from="1571879497075" duration="4994000" />
+      <workItem from="1571879497075" duration="7167000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="45867000" />
+    <option name="totallyTimeSpent" value="48040000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1096" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.081023455" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32848233" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.52544135" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.32848233" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.524948" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -284,14 +283,14 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/main.py</url>
-          <line>12</line>
-          <option name="timeStamp" value="11" />
+          <line>26</line>
+          <option name="timeStamp" value="14" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PyQt$main.coverage" NAME="main Coverage Results" MODIFIED="1571891871445" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PyQt$main.coverage" NAME="main Coverage Results" MODIFIED="1571907253491" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://C:/Env/Anaconda/envs/py36/Lib/site-packages/numpy/core/numeric.py">
@@ -361,16 +360,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/funs.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="900">
-          <caret line="39" selection-start-line="39" selection-end-line="39" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://C:/Env/Anaconda/envs/py36/Lib/site-packages/numpy/random/__init__.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2950">
@@ -423,10 +412,20 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/funs.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="497">
+          <caret line="39" column="47" lean-forward="true" selection-start-line="39" selection-start-column="47" selection-end-line="39" selection-end-column="47" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="404">
-          <caret line="104" column="25" selection-start-line="104" selection-start-column="25" selection-end-line="104" selection-end-column="25" />
+        <state relative-caret-position="293">
+          <caret line="12" column="17" lean-forward="true" selection-start-line="11" selection-start-column="12" selection-end-line="12" selection-end-column="17" />
           <folding>
             <element signature="e#1#12#0" expanded="true" />
           </folding>

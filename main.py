@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import time
 
 FS = 10000
-DUR = 60 * 1
+DUR = 60 * 20
 
-SNR = -20
+SNR = -45
 WIN = 10000
 STRD = 10000
 N_USED = DUR * FS
@@ -80,8 +80,8 @@ def testTandSNR(TRef,SNRRef,fd):
     N_USED = DUR * FS
     x0, ns0 = getSig()
     sig = x0 + ns0
-    # F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD, L).__abs__()
-    F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
+    F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD).__abs__()
+    # F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
     fP = f0 * NFFT // FS
     f = np.arange(300 * NFFT // FS) / (300 * NFFT // FS) * 300
     plt.plot(f,abs(F[:300 * NFFT // FS]))
@@ -95,13 +95,14 @@ def testTandSNR(TRef,SNRRef,fd):
 
 
 if __name__ == '__main__':
-    Ts = [1,2,4,8,16,32,64]
-    SNRs = [-10,-20,-30,-40,-50]
-    with open("TandSNR/ExploreTandSNR.txt","a+") as fd:
-        cnt = 0
-        for snr in SNRs:
-            testTandSNR(8,snr,fd)
-            cnt += 1
-            print("{} ok!".format(cnt / len(SNRs)))
+    testNormal()
+    # Ts = [1,2,4,8,16,32,64]
+    # SNRs = [-10,-20,-30,-40,-50]
+    # with open("TandSNR/ExploreTandSNR.txt","a+") as fd:
+    #     cnt = 0
+    #     for snr in SNRs:
+    #         testTandSNR(8,snr,fd)
+    #         cnt += 1
+    #         print("{} ok!".format(cnt / len(SNRs)))
 
 
