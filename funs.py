@@ -30,11 +30,13 @@ def accumlateInF(sig,FS,NFFT,WIN,STRD):
     fAccum = 0
     for n in range(0,len(sig),STRD):
         nstart = n * STRD
-        dw = 2 * np.pi * f * nstart / FS
+        dw = 2 * np.pi * f * nstart / FS*0
+
         dpp = np.exp(-1j * dw)
 
         subSig = sig[nstart:nstart + WIN]
-        subF = fft(subSig,NFFT) / NFFT
+        subF = fft(subSig,NFFT)
         fAccum += subF * dpp
+
 
     return fAccum / len(range(0,len(sig),STRD))

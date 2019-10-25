@@ -7,12 +7,12 @@ import time
 FS = 10000
 DUR = 60 * 20
 
-SNR = -45
+SNR = -20
 WIN = 10000
 STRD = 10000
 N_USED = DUR * FS
 f0 = 100
-NFFT = 12000000
+NFFT = WIN
 
 
 def getSig():
@@ -39,8 +39,9 @@ def testNormal():
     start = time.time()
     x0, ns0 = getSig()
     sig = x0 + ns0
-    # F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD, L).__abs__()
-    F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
+    F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD).__abs__()
+    # NFFT = len(sig)
+    # F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
     end = time.time()
     # print(end - start)
     # plt.figure()
@@ -48,7 +49,7 @@ def testNormal():
     f = np.arange(300 * NFFT // FS) / (300 * NFFT // FS) * 300
     plt.plot(f,abs(F[:300 * NFFT // FS]))
     plt.xlabel("Hz")
-    plt.title("Mean of Noise:{:.3f},Mean of Signal{:.3f},Time:{}min(s)".format(np.mean(np.hstack((F[0:fP - 1], F[fP + 1:300 * NFFT // FS]))),F[fP],DUR / 60))
+    plt.title("Mean of Noise:{:.3f},Mean of Signal{:.3f},Time:{}min(s)\nRadio:{:.5f},Theory:{:5f}".format(np.mean(np.hstack((F[0:fP - 1], F[fP + 1:300 * NFFT // FS]))),F[fP],DUR / 60, F[fP] / np.mean(np.hstack((F[0:fP - 1], F[fP + 1:300 * NFFT // FS]))),np.sqrt(10 ** (SNR/10) * DUR * 300)))
     plt.show()
     # f = np.arange(funs.NFFT) * funs.FS / funs.NFFT
     # F = abs(funs.accumlateInF(sig,funs.FS,funs.NFFT,funs.WIN,funs.STRD,funs.L))
@@ -80,8 +81,8 @@ def testTandSNR(TRef,SNRRef,fd):
     N_USED = DUR * FS
     x0, ns0 = getSig()
     sig = x0 + ns0
-    F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD).__abs__()
-    # F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
+    # F = funs.accumlateInF(sig, FS, NFFT, WIN, STRD).__abs__()
+    F = np.abs(np.fft.fft(sig,NFFT))  / len(sig)
     fP = f0 * NFFT // FS
     f = np.arange(300 * NFFT // FS) / (300 * NFFT // FS) * 300
     plt.plot(f,abs(F[:300 * NFFT // FS]))
