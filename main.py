@@ -7,9 +7,9 @@ import time
 FS = 10000
 DUR = 60 * 20
 
-SNR = -20
-WIN = 10000
-STRD = 10000
+SNR = -45
+WIN = 5000
+STRD = 5000
 N_USED = DUR * FS
 f0 = 100
 NFFT = WIN
@@ -46,8 +46,10 @@ def testNormal():
     # print(end - start)
     # plt.figure()
     fP = f0 * NFFT // FS
-    f = np.arange(300 * NFFT // FS) / (300 * NFFT // FS) * 300
-    plt.plot(f,abs(F[:300 * NFFT // FS]))
+    nFMax = 300 * NFFT // FS
+    f = np.arange(nFMax) / (nFMax) * 300
+    # plt.plot(np.abs(F))
+    plt.plot(f,abs(F[:nFMax]))
     plt.xlabel("Hz")
     plt.title("Mean of Noise:{:.3f},Mean of Signal{:.3f},Time:{}min(s)\nRadio:{:.5f},Theory:{:5f}".format(np.mean(np.hstack((F[0:fP - 1], F[fP + 1:300 * NFFT // FS]))),F[fP],DUR / 60, F[fP] / np.mean(np.hstack((F[0:fP - 1], F[fP + 1:300 * NFFT // FS]))),np.sqrt(10 ** (SNR/10) * DUR * 300)))
     plt.show()

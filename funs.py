@@ -28,15 +28,17 @@ def butter_lowpass_filter(data, order, cutoff, FS):
 def accumlateInF(sig,FS,NFFT,WIN,STRD):
     f = np.arange(NFFT) * FS / NFFT
     fAccum = 0
-    for n in range(0,len(sig),STRD):
-        nstart = n * STRD
-        dw = 2 * np.pi * f * nstart / FS*0
+    for n in range(0,len(sig) - WIN,STRD):
+        nstart = n
+        dw = 2 * np.pi * f * nstart / FS
 
         dpp = np.exp(-1j * dw)
 
         subSig = sig[nstart:nstart + WIN]
         subF = fft(subSig,NFFT)
         fAccum += subF * dpp
+        # plt.plot(np.real(subSig))
+        # plt.show()
 
 
-    return fAccum / len(range(0,len(sig),STRD))
+    return fAccum / len(range(0,len(sig) - WIN,STRD))
