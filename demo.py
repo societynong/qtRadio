@@ -14,9 +14,9 @@ FP = 300
 N_VIEW = 8
 D = 8 * 40
 A = 0.5
-a = 480
-b = 480
-SNR = -42
+a = 1
+b = a
+SNR = -40
 W = 10000
 S = 10000
 
@@ -33,6 +33,11 @@ def srFun(a,b,h,sig):
     # u = u - np.mean(u)
     return u
 
+def srFunMine(a,b,h,sig):
+    u = np.zeros(len(sig))
+    for i in range(1,len(u)):
+        u[i] =u[i - 1] + h * (a * u[i - 1] - b * u[i - 1] ** 3 + sig[i - 1])
+    return u
 def getSig(t,F0,FP,FS,SNR):
     x0 = np.sin(2*np.pi*F0*t)
     ns = np.random.randn(N)
@@ -55,11 +60,12 @@ def getAcmSig(sig,W,S):
 def showInF(sig,fMax,fS):
     NFFT = len(sig)
     F_SHOW = int(fMax // (fS / NFFT))
-    F_ABS = np.abs(np.fft.fft(sig)) / len(sig)
+    F_ABS = np.abs(np.fft.fft(sig)[:NFFT // 2]) / len(sig)
     f = np.arange(F_SHOW) / NFFT * FS
-
+    f0 = np.where(f == F0)
     plt.plot(f[:F_SHOW],F_ABS[:F_SHOW])
-    plt.title("Max F:{}".format(f[np.argmax(F_ABS[:F_SHOW])]))
+    plt.title("SNR:{}".format(F_ABS[f0] * (len(F_ABS) - 1) / ((np.sum(F_ABS) - F_ABS[f0]))))
+    # plt.title("Max F:{}".format(f[np.argmax(F_ABS[:F_SHOW])]))
 
 
 def showInT(sig,FS):
@@ -74,9 +80,10 @@ def goalFunc(ab,FS,x0,n0):
     srF = np.abs(np.fft.fft(sr))[:int(len(sr) / 2)]
     f0N = int(F0 / (FS / len(sr)))
 
-    sigF = np.abs(np.fft.fft(x0 + n0))[:int(len(x0 + n0) / 2)]
+    # sigF = np.abs(np.fft.fft(x0 + n0))[:int(len(x0 + n0) / 2)]
 
-    return 1 / (srF[f0N] / np.mean(np.hstack((srF[:f0N],srF[f0N:]))) / (sigF[f0N] / np.mean(np.hstack((sigF[:f0N],sigF[f0N:])))))
+    return srF[f0N] / np.mean(np.hstack((srF[:f0N],srF[f0N:])))
+    # return 1 / (srF[f0N] / np.mean(np.hstack((srF[:f0N],srF[f0N:]))) / (sigF[f0N] / np.mean(np.hstack((sigF[:f0N],sigF[f0N:])))))
     # return -np.mean(sr*x0)**2
 
 def goalFuncPSO(ab):
@@ -99,7 +106,6 @@ def goalFuncPSOA(a):
     return -np.mean(sr*x0)**2
 
 def selIMF(imfs,sig):
-    retI = 0
     maxV = 0
     sig = sig - np.mean(sig)
     for i in range(imfs.shape[0]):
@@ -108,7 +114,6 @@ def selIMF(imfs,sig):
         goal = np.sum(imfI * sig) / np.sqrt(np.sum(imfI ** 2) * np.sum(sig ** 2))
         if goal > maxV:
             maxV = goal
-            retI = i
     return imfI[i]
 
 
@@ -124,14 +129,16 @@ def test():
     # res = optimize.minimize(goalFuncPSO,(a,b),bounds=((.001,10),(.001,10)))
     # print(res)
     # print(goalFunc((a,b),FS,x0,n0))
+    # sig = np.random.randn(len(t)) * 100#np.sin(2 * np.pi * F0 * t) * 1000
     sig = n0 + x0
     sig = getAcmSig(sig,W,S)
     # sig = sig / np.std(sig) * 2
-    sig = np.sqrt(a ** 3 / b) * sig
+    sig = np.sqrt(a ** 3 / b) / np.std(sig) * sig
     sr = srFun(a,b,1/FS,sig)
     # showInT(sig, FS)
     # showInF(sig, 0.2, FS)
 
+    plt.ion()
     plt.figure()
     plt.subplot(2, 2, 1)
     plt.title(snr(x0,n0))
@@ -144,8 +151,9 @@ def test():
     showInT(sr, FS)
     plt.subplot(2, 2, 4)
     showInF(sr, 400, FS)
-    plt.show()
 
+    plt.ioff()
+    plt.show()
 
     # showInT(sr,FS)
     # showInF(sr,0.03,FS)
@@ -169,5 +177,60 @@ def test3D():
     ax.set_ylabel('y')
     ax.set_zlabel('eggholder(x, y)')
     plt.show()
+
+
+def snrInF(sig,F0,FS):
+    
+    NFFT = len(sig)
+    sigF = np.abs(np.fft.fft(sig)[:NFFT // 2])
+    f = np.arange(NFFT // 2) / NFFT * FS
+    f0 = np.where(f == F0)
+    return sigF[f0] / (np.sum(sigF) - sigF[f0]) * (len(sigF) - 1)
+
+def exploreWithA():
+    x0, n0 = getSig(t, F0, FP, FS, SNR)
+    sig = n0 + x0
+    sig = getAcmSig(sig,W,S)
+    
+    gStart = 1
+    gStop = 51
+    gStep = 2
+    gS = np.arange(gStart,gStop,gStep)
+    
+    aStart = 1
+    aStop = 601
+    aStep = 20
+    aS = np.arange(aStart,aStop,aStep)
+    rec = np.zeros((len(aS),len(gS)))
+    for ai in range(len(aS)):
+        for gi in range(len(gS)):
+            aa = aS[ai]
+            gg = gS[gi]
+            sig1 = np.sqrt(aa ** 3 / aa)  * sig / np.std(sig) * gg
+            sr = srFun(aa,aa,1 / FS,sig1)
+            rec[ai][gi] = (float(snrInF(sr,F0,FS)))
+            # rec.append(float(snrInF(sr,F0,FS)))
+    fig = plt.figure()
+    snr0 = float(snrInF(sig,F0,FS))
+    giMax,aiMax = np.unravel_index(np.argmax(rec),rec.shape)
+    X,Y = np.meshgrid(gS,aS)
+    ax = Axes3D(fig)
+    ax.plot_surface(X,Y,rec / snr0)
+    plt.title("gMax:{},aMax:{},maxGain:{}".format(gS[giMax],aS[aiMax],rec[giMax][aiMax] / snr0))
+    sig1 = np.sqrt(aS[aiMax] ** 3 / aS[aiMax])  * sig / np.std(sig) * gS[giMax]
+    sr = srFun(aS[aiMax],aS[aiMax],1 / FS,sig1)
+    plt.savefig("Opt_SR\SearchMap.png")
+    plt.figure()
+    plt.subplot(2,1,1)
+    showInF(sig,400,FS)
+    plt.subplot(2,1,2)
+    showInF(sr,400,FS)
+    plt.savefig("Opt_SR\Compare.png")
+    # maxL = np.argmax(rec)
+    # plt.plot(aS,rec)
+    # plt.plot(aS,np.ones(len(rec)) * float(snrInF(sig,F0,FS)))
+    # plt.title("Max Loc:{},Max Gain:{}".format(aS[maxL],rec[maxL] / float(snrInF(sig,F0,FS))))
+    # plt.show()
+        
 if __name__ == "__main__":
-    test()
+    exploreWithA()
