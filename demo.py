@@ -25,11 +25,11 @@ def srFun(a,b,h,sig):
     u = np.zeros(len(sig))
 
     for i in range(len(u) - 1):
-        k1 = h * (a * u[i] - b * u[i] ** 3 + sig[i]);
-        k2 = h * (a * (u[i] + k1 / 2) - b * (u[i] + k1 / 2) ** 3 + sig[i]);
-        k3 = h * (a * (u[i] + k2 / 2) - b * (u[i] + k2 / 2) ** 3 + sig[i + 1]);
-        k4 = h * (a * (u[i] + k3) - b * (u[i] + k3) ** 3 + sig[i + 1]);
-        u[i + 1] = u[i] + (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4);
+        k1 = h * (a * u[i] - b * u[i] ** 3 + sig[i])
+        k2 = h * (a * (u[i] + k1 / 2) - b * (u[i] + k1 / 2) ** 3 + sig[i])
+        k3 = h * (a * (u[i] + k2 / 2) - b * (u[i] + k2 / 2) ** 3 + sig[i + 1])
+        k4 = h * (a * (u[i] + k3) - b * (u[i] + k3) ** 3 + sig[i + 1])
+        u[i + 1] = u[i] + (1 / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
     # u = u - np.mean(u)
     return u
 
@@ -127,7 +127,7 @@ def test():
     sig = n0 + x0
     sig = getAcmSig(sig,W,S)
     # sig = sig / np.std(sig) * 2
-    sig = np.sqrt(a ** 3 / b) * sig;
+    sig = np.sqrt(a ** 3 / b) * sig
     sr = srFun(a,b,1/FS,sig)
     # showInT(sig, FS)
     # showInF(sig, 0.2, FS)
@@ -138,7 +138,6 @@ def test():
     showInT(sig, FS)
     plt.subplot(2, 2, 3)
     showInF(sig, 400, FS)
-    plt.show()
 
     plt.subplot(2, 2, 2)
     plt.title(snr(x0, n0))
