@@ -5,7 +5,7 @@ from scipy.optimize import minimize_scalar
 from mpl_toolkits.mplot3d import Axes3D
 from sko.ASFA import ASFA
 import funs
-DUR = 60*20
+DUR = 60*1
 FS = 10000
 N = int(DUR * FS)
 t = np.arange(N) / FS
@@ -14,11 +14,31 @@ FP = 300
 N_VIEW = 8
 D = 8 * 40
 A = 0.5
-a = 1
+a = 10000
 b = a
-SNR = -40
+SNR = -20
 W = 10000
 S = 10000
+
+
+def srU(a,b,x):
+    return -a*x + b * x**3
+
+def srDuf(a,b,k,h,sig,f):
+    y = np.zeros(len(sig))
+    x = np.zeros(len(sig))
+    for i in range(len(y) - 1):
+        K1 = h * y[i]
+        L1 = h * (-k * y[i] - f(a,b,x[i]) + sig[i])
+        K2 = h * (y[i] + L1 / 2)
+        L2 = h * (-k * (y[i] + L1 / 2) - f(a,b,x[i] + K1 / 2) + sig[i])
+        K3 = h * (y[i] + L2 / 2)
+        L3 = h * (-k * (y[i] + L2 / 2) - f(a,b,x[i] + K2 / 2) + sig[i + 1])
+        K4 = h * (y[i] + L3)
+        L4 = h * (-k * (y[i] + L3) - f(a,b,x[i] + K3) + sig[i + 1])
+        x[i + 1] = x[i] + 1 / 6 * (K1 + 2 * K2 + 2 * K3 + K4)
+        y[i + 1] = y[i] + 1 / 6 * (L1 + 2 * L2 + 2 * L3 + L4)
+    return x
 
 def srFun(a,b,h,sig):
 
@@ -41,7 +61,7 @@ def srFunMine(a,b,h,sig):
 def getSig(t,F0,FP,FS,SNR):
     x0 = np.sin(2*np.pi*F0*t)
     ns = np.random.randn(N)
-    ns = funs.butter_lowpass_filter(ns,10,FP,FS)
+    ns = funs.butter_filter(ns,10,FP,FS,'lowpass')
     ns = ns - np.mean(ns)
 
     sigPower = 1 / N * np.sum(x0 * x0)
@@ -120,21 +140,26 @@ def selIMF(imfs,sig):
 def snr(x,n):
     return 10 * np.log10(np.sum(x**2) / np.sum(n ** 2))
 
+
+def lineMap(mi,mx,sig):
+    return (sig - np.min(sig)) / (np.max(sig) - np.min(sig)) * (mx - mi) + mi
+
+
 def test():
     x0, n0 = getSig(t, F0, FP, FS, SNR)
-    # x0 = A * np.sin(2*np.pi*F0*t)
-    # n0 =  np.sqrt(D * 2) * np.random.rand(len(x0))
-    # n0 = n0 - np.mean(n0)
-
-    # res = optimize.minimize(goalFuncPSO,(a,b),bounds=((.001,10),(.001,10)))
-    # print(res)
-    # print(goalFunc((a,b),FS,x0,n0))
-    # sig = np.random.randn(len(t)) * 100#np.sin(2 * np.pi * F0 * t) * 1000
     sig = n0 + x0
+    
+    # sig = funs.butter_filter(sig,4,(60,150),FS,'bandpass')
     sig = getAcmSig(sig,W,S)
+    
     # sig = sig / np.std(sig) * 2
-    sig = np.sqrt(a ** 3 / b) / np.std(sig) * sig
+    # sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b) * 100000000
+    sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b / 27) * 40
+    sig = sig - np.mean(sig)
+    # sig = sig * np.sqrt(4 * a ** 3 / b) #np.sqrt(a ** 3 / b) / np.std(sig) * sig *3
+    # sr = srDuf(a,b,0.01,1/FS,sig,srU)
     sr = srFun(a,b,1/FS,sig)
+    # sr = getAcmSig(sr,W,S)
     # showInT(sig, FS)
     # showInF(sig, 0.2, FS)
 
@@ -193,20 +218,21 @@ def exploreWithA():
     sig = getAcmSig(sig,W,S)
     
     gStart = 1
-    gStop = 51
-    gStep = 2
+    gStop = 41
+    gStep = .5
     gS = np.arange(gStart,gStop,gStep)
     
     aStart = 1
-    aStop = 601
-    aStep = 20
+    aStop = 701
+    aStep = 10
     aS = np.arange(aStart,aStop,aStep)
     rec = np.zeros((len(aS),len(gS)))
     for ai in range(len(aS)):
         for gi in range(len(gS)):
             aa = aS[ai]
             gg = gS[gi]
-            sig1 = np.sqrt(aa ** 3 / aa)  * sig / np.std(sig) * gg
+            sig1 = lineMap(-1,1,sig) * np.sqrt(4 * aa ** 3 / aa) * gg
+            # sig1 = np.sqrt(aa ** 3 / aa)  * sig / np.std(sig) * gg
             sr = srFun(aa,aa,1 / FS,sig1)
             rec[ai][gi] = (float(snrInF(sr,F0,FS)))
             # rec.append(float(snrInF(sr,F0,FS)))
@@ -230,7 +256,7 @@ def exploreWithA():
     # plt.plot(aS,rec)
     # plt.plot(aS,np.ones(len(rec)) * float(snrInF(sig,F0,FS)))
     # plt.title("Max Loc:{},Max Gain:{}".format(aS[maxL],rec[maxL] / float(snrInF(sig,F0,FS))))
-    # plt.show()
+    plt.show()
         
 if __name__ == "__main__":
-    exploreWithA()
+    test()

@@ -15,8 +15,13 @@ def choose_windows(name,N):
 
 
 
-def butter_lowpass_filter(data, order, cutoff, FS):
-    b,a = butter(order,2 * cutoff / FS,'low')
+def butter_filter(data, order, cutoff, FS,type):
+    if type == 'lowpass' or type == 'highpass':
+        b,a = butter(order,2 * cutoff / FS,type)
+    elif type == 'bandpass':
+        b,a = butter(order,(2 * cutoff[0] / FS, 2 * cutoff[1] / FS),type)
+    else :
+        return None
     return lfilter(b,a,data)
 
 
