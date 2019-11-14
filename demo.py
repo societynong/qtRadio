@@ -5,20 +5,21 @@ from scipy.optimize import minimize_scalar
 from mpl_toolkits.mplot3d import Axes3D
 from sko.ASFA import ASFA
 import funs
-DUR = 60*1
+DUR = 60*20
 FS = 10000
 N = int(DUR * FS)
 t = np.arange(N) / FS
 F0 = 100
 FP = 300
+FA = 96
 N_VIEW = 8
 D = 8 * 40
 A = 0.5
-a = 10000
+a = 100
 b = a
-SNR = -20
-W = 10000
-S = 10000
+SNR = -60
+W = 5000
+S = 5000
 
 
 def srU(a,b,x):
@@ -60,16 +61,27 @@ def srFunMine(a,b,h,sig):
     return u
 def getSig(t,F0,FP,FS,SNR):
     x0 = np.sin(2*np.pi*F0*t)
-    ns = np.random.randn(N)
+    ns = np.random.randn(len(t))
     ns = funs.butter_filter(ns,10,FP,FS,'lowpass')
     ns = ns - np.mean(ns)
 
-    sigPower = 1 / N * np.sum(x0 * x0)
+    sigPower = 1 / len(t) * np.sum(x0 * x0)
 
     nsiPower = sigPower / (10**(SNR / 10))
 
     ns = np.sqrt(nsiPower) / np.std(ns) * ns
 
+    return x0 , ns
+
+def getNoiseFix(t,F0,FP,FS,SNR):
+    x0 = np.sin(2*np.pi*F0*t)
+    ns = np.random.randn(len(t))
+    ns = funs.butter_filter(ns,10,FP,FS,'highpass')
+    sigPower = 1 / N * np.sum(x0 * x0)
+
+    nsiPower = sigPower / (10**(SNR / 10))
+
+    ns = np.sqrt(nsiPower) / np.std(ns) * ns
     return x0 , ns
 
 def getAcmSig(sig,W,S):
@@ -82,16 +94,25 @@ def showInF(sig,fMax,fS):
     F_SHOW = int(fMax // (fS / NFFT))
     F_ABS = np.abs(np.fft.fft(sig)[:NFFT // 2]) / len(sig)
     f = np.arange(F_SHOW) / NFFT * FS
-    f0 = np.where(f == F0)
     plt.plot(f[:F_SHOW],F_ABS[:F_SHOW])
-    plt.title("SNR:{}".format(F_ABS[f0] * (len(F_ABS) - 1) / ((np.sum(F_ABS) - F_ABS[f0]))))
+    plt.xlabel("Hz")
     # plt.title("Max F:{}".format(f[np.argmax(F_ABS[:F_SHOW])]))
 
+def showInFDetail(sig,fMax,fS,fGoal):
+    NFFT = len(sig)
+    F_SHOW = int(fMax // (fS / NFFT))
+    F_ABS = np.abs(np.fft.fft(sig)[:NFFT // 2]) / len(sig)
+    f = np.arange(F_SHOW) / NFFT * FS
+    f0 = np.where(np.abs(f - fGoal) < fS / NFFT / 2 )
+    plt.plot(f[:F_SHOW],F_ABS[:F_SHOW])
+    plt.xlabel("Hz")
+    plt.title("Signal weight:{} Highest frequency location:{}Hz".format(F_ABS[f0] * (len(F_ABS) - 1) / ((np.sum(F_ABS) - F_ABS[f0])),f[np.argmax(F_ABS[:F_SHOW])]))
+    # plt.title("Max F:{}".format(f[np.argmax(F_ABS[:F_SHOW])]))
 
 def showInT(sig,FS):
     t = np.arange(len(sig)) / FS
     plt.plot(t,sig)
-
+    plt.xlabel("s")
 
 
 def goalFunc(ab,FS,x0,n0):
@@ -141,49 +162,77 @@ def snr(x,n):
     return 10 * np.log10(np.sum(x**2) / np.sum(n ** 2))
 
 
-def lineMap(mi,mx,sig):
+def lineMap(mi,mx,sig): 
     return (sig - np.min(sig)) / (np.max(sig) - np.min(sig)) * (mx - mi) + mi
 
+def getMaxF(sig,FS):
+    NFFT = len(sig)
+    f = np.arange(NFFT) / NFFT * FS
+    sigF = np.abs(np.fft.fft(sig))[:int(NFFT // 2)]
+    return f[np.argmax(sigF)]
 
 def test():
-    x0, n0 = getSig(t, F0, FP, FS, SNR)
-    sig = n0 + x0
-    
-    # sig = funs.butter_filter(sig,4,(60,150),FS,'bandpass')
-    sig = getAcmSig(sig,W,S)
-    
-    # sig = sig / np.std(sig) * 2
-    # sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b) * 100000000
-    sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b / 27) * 40
-    sig = sig - np.mean(sig)
-    # sig = sig * np.sqrt(4 * a ** 3 / b) #np.sqrt(a ** 3 / b) / np.std(sig) * sig *3
-    # sr = srDuf(a,b,0.01,1/FS,sig,srU)
-    sr = srFun(a,b,1/FS,sig)
-    # sr = getAcmSig(sr,W,S)
-    # showInT(sig, FS)
-    # showInF(sig, 0.2, FS)
+    TT = 20
+    accRW = 0
+    accTZ = 0
+    accN = 0
+    for tt in range(TT):
+        x0, n0 = getSig(t, F0, FP, FS, SNR)
+        sig0 = n0 + x0
+        
+        # sig = funs.butter_filter(sig,4,(60,150),FS,'bandpass')
+        
+        sigTZ = getAcmSig(sig0 * np.cos(2 * np.pi * FA * t),W,S)
+        nTZ = getAcmSig(n0 * np.cos(2 * np.pi * FA * t),W,S)
+        sigRW = getAcmSig(sig0,W,S)
+        # sig = sig / np.std(sig) * 2
+        # sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b) * 100000000
+        sigTZ = lineMap(-1,1,sigTZ) * np.sqrt(4 * a ** 3 / b / 27) * 20
+        sigTZ = sigTZ - np.mean(sigTZ)
+        # sig = sig * np.sqrt(4 * a ** 3 / b) #np.sqrt(a ** 3 / b) / np.std(sig) * sig *3
+        # sr = srDuf(a,b,0.01,1/FS,sig,srU)
+        srTZ = srFun(a,b,1/FS,sigTZ)
+        srN = srFun(a,b,1/FS,nTZ)
+        # sr = getAcmSig(sr,W,S)
+        # showInT(sig, FS)
+        # showInF(sig, 0.2, FS)
+        if np.abs(getMaxF(sigRW,FS) - F0) <= FS / len(sigRW):
+            accRW += 1
+        if np.abs(getMaxF(srTZ,FS) - (F0 - FA)) <= FS / len(srTZ):
+            accTZ += 1
+        if np.abs(getMaxF(srN,FS) - (F0 - FA)) <= FS / len(srN):
+            accN += 1
+    print("RW:{}".format(accRW / TT))
+    print("TZ:{}".format(accTZ / TT))
+    print("N:{}".format(accN / TT))
+####################################################
+    # plt.ion()
+    # plt.figure('Test',figsize=(16,12))
+    # plt.subplot(2, 2, 1)
+    # plt.title(snr(x0,n0))
+    # showInT(sigRW, FS)
+    # plt.subplot(2, 2, 3)
+    # showInFDetail(sigRW, 400, FS,F0)
 
-    plt.ion()
-    plt.figure()
-    plt.subplot(2, 2, 1)
-    plt.title(snr(x0,n0))
-    showInT(sig, FS)
-    plt.subplot(2, 2, 3)
-    showInF(sig, 400, FS)
+    # plt.subplot(2, 2, 2)
+    # plt.title(snr(x0, n0))
+    # showInT(srTZ, FS)
+    # plt.subplot(2, 2, 4)
+    # showInFDetail(srTZ, 30, FS,F0 - FA)
 
-    plt.subplot(2, 2, 2)
-    plt.title(snr(x0, n0))
-    showInT(sr, FS)
-    plt.subplot(2, 2, 4)
-    showInF(sr, 400, FS)
-
-    plt.ioff()
-    plt.show()
-
+    # plt.ioff()
+    # plt.show()
+####################################################
     # showInT(sr,FS)
     # showInF(sr,0.03,FS)
     # print(optimize.minimize(goalFunc,[0.1,4],(FS,x0,n0),bounds=((0.00001,None),(0.00001,None))))
+    # print(optimize.minimize(goalFunc,[0.1,4],(FS,x0,n0),bounds=((0.00001,None),(0.00001,None))))
+    # print(optimize.minimize(goalFunc,[0.1,4],(FS,x0,n0),bounds=((0.00001,None),(0.00001,None))))
+    # print(optimize.minimize(goalFunc,[0.1,4],(FS,x0,n0),bounds=((0.00001,None),(0.00001,None))))
+
 # 0.00438242,0.00092982
+
+    
 
 def eggholder(x):
      return (-(x[1] + 47) * np.sin(np.sqrt(abs(x[0]/2 + (x[1]  + 47))))
@@ -209,8 +258,18 @@ def snrInF(sig,F0,FS):
     NFFT = len(sig)
     sigF = np.abs(np.fft.fft(sig)[:NFFT // 2])
     f = np.arange(NFFT // 2) / NFFT * FS
-    f0 = np.where(f == F0)
+    f0 = np.where(f == F0 - FA)
     return sigF[f0] / (np.sum(sigF) - sigF[f0]) * (len(sigF) - 1)
+
+
+def snrTest():
+    D = 1
+    n0 = np.sqrt(2 * D) * np.random.rand(len(t))
+    x0 = 0.1 * np.sin(2 * np.pi * F0 * t)
+    print(snr(x0,n0))
+    print(snr(x0,n0))
+    print(snr(x0,n0))
+    print(snr(x0,n0))
 
 def exploreWithA():
     x0, n0 = getSig(t, F0, FP, FS, SNR)
@@ -237,6 +296,7 @@ def exploreWithA():
             rec[ai][gi] = (float(snrInF(sr,F0,FS)))
             # rec.append(float(snrInF(sr,F0,FS)))
     fig = plt.figure()
+
     snr0 = float(snrInF(sig,F0,FS))
     giMax,aiMax = np.unravel_index(np.argmax(rec),rec.shape)
     X,Y = np.meshgrid(gS,aS)
@@ -257,6 +317,35 @@ def exploreWithA():
     # plt.plot(aS,np.ones(len(rec)) * float(snrInF(sig,F0,FS)))
     # plt.title("Max Loc:{},Max Gain:{}".format(aS[maxL],rec[maxL] / float(snrInF(sig,F0,FS))))
     plt.show()
-        
+
+
+def jiangpin(sig,f0,f1):
+    n = int(f0 / f1)
+    m = int(len(sig) / n)
+    ret = sig[:m*n]
+    ret = np.reshape(sig,(n,m))
+    ret = np.transpose(ret,(1,0))
+    ret = np.reshape(ret,m*n)
+    return ret
+
+
+
+def jiangpinDemo():
+    x0, n0 = getSig(t, F0, FP, FS, SNR)
+    # _,n1 = getNoiseFix(t,F0,FP,FS,SNR)
+    
+    sig0 = n0
+    # sig1 = sig0 * np.cos(2 * np.pi * 99 * t)
+    sig1 = jiangpin(sig0,100,1)
+    plt.figure()
+    plt.subplot(2,2,1)
+    showInT(sig0[:10000],FS)
+    plt.subplot(2,2,3)
+    showInF(sig0,600,FS)
+    plt.subplot(2,2,2)
+    showInT(sig1[:10000],FS)
+    plt.subplot(2,2,4)
+    showInF(sig1,600,FS)
+    plt.show()
 if __name__ == "__main__":
     test()
