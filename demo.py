@@ -4,22 +4,25 @@ from scipy import optimize
 from scipy.optimize import minimize_scalar
 from mpl_toolkits.mplot3d import Axes3D
 from sko.ASFA import ASFA
+from sklearn import svm,tree
 import funs
+import pickle as pkl
+from sklearn.model_selection import train_test_split
 DUR = 60*20
 FS = 10000
 N = int(DUR * FS)
 t = np.arange(N) / FS
 F0 = 100
 FP = 300
-FA = 96
+FA = 98
 N_VIEW = 8
 D = 8 * 40
-A = 0.5
+A = 0.6
 a = 100
 b = a
-SNR = -60
-W = 5000
-S = 5000
+SNR = -50
+W = 10000
+S = 10000
 
 
 def srU(a,b,x):
@@ -188,7 +191,9 @@ def test():
         # sig = sig / np.std(sig) * 2
         # sig = lineMap(-1,1,sig) * np.sqrt(4 * a ** 3 / b) * 100000000
         sigTZ = lineMap(-1,1,sigTZ) * np.sqrt(4 * a ** 3 / b / 27) * 20
+        nTZ = lineMap(-1,1,nTZ) * np.sqrt(4 * a ** 3 / b / 27) * 20
         sigTZ = sigTZ - np.mean(sigTZ)
+        nTZ = nTZ - np.mean(nTZ)
         # sig = sig * np.sqrt(4 * a ** 3 / b) #np.sqrt(a ** 3 / b) / np.std(sig) * sig *3
         # sr = srDuf(a,b,0.01,1/FS,sig,srU)
         srTZ = srFun(a,b,1/FS,sigTZ)
@@ -196,11 +201,11 @@ def test():
         # sr = getAcmSig(sr,W,S)
         # showInT(sig, FS)
         # showInF(sig, 0.2, FS)
-        if np.abs(getMaxF(sigRW,FS) - F0) <= FS / len(sigRW):
+        if np.abs(getMaxF(sigRW,FS) - F0) <= FS / len(sigRW) / 2:
             accRW += 1
-        if np.abs(getMaxF(srTZ,FS) - (F0 - FA)) <= FS / len(srTZ):
+        if np.abs(getMaxF(srTZ,FS) - (F0 - FA)) <= FS / len(srTZ) / 2:
             accTZ += 1
-        if np.abs(getMaxF(srN,FS) - (F0 - FA)) <= FS / len(srN):
+        if np.abs(getMaxF(srN,FS) - (F0 - FA)) <= FS / len(srN) / 2:
             accN += 1
     print("RW:{}".format(accRW / TT))
     print("TZ:{}".format(accTZ / TT))
@@ -329,7 +334,71 @@ def jiangpin(sig,f0,f1):
     return ret
 
 
+def _testPoint(sig,f0):
+    # sig = lineMap(-1,1,sig)
+    sigAcm = sig #getAcmSig(sig,W,S)
+    sigAcm = sigAcm - np.mean(sigAcm)
+    sigAcm = sigAcm / np.std(sigAcm)
+    NFFT = len(sigAcm)
+    sigAcmF = np.abs(np.fft.fft(sigAcm))[:int(NFFT // 2)]
+    f = np.arange(NFFT)  / NFFT * FS
+    return sigAcmF[np.where(np.abs(f - f0) <= FS / NFFT / 2)]
 
+
+def dataGeneration():
+    for snr in range(-45,-61,-1):
+        if snr == -55:
+            continue
+        nPoints = 600
+        fN0Rec = []
+        fSigRec = []
+        for i in range(nPoints):
+            x0, n0 = getSig(t, F0, FP, FS, snr)
+            fN0 = _testPoint(n0,F0)
+            # fX0 = _testPoint(x0,F0)
+            fSig = _testPoint(x0 + n0,F0)
+            fN0Rec.append(fN0)
+            fSigRec.append(fSig)
+            print("{}% of {}db".format(i / nPoints * 100,snr))
+        X = np.reshape(np.array(fN0Rec+fSigRec),[-1,1])
+        y = np.array(([0] * len(fN0Rec))+([1] * len(fSigRec)))
+        with open("{}raw.pkl".format(snr),'wb') as f:
+            pkl.dump((X,y),f)
+def testSinglePoint():
+    # nPoints = 40
+    # plt.figure()
+    # plt.title("SNR:{}".format(SNR))
+    # fN0Rec = []
+    # fSigRec = []
+    # for i in range(nPoints):
+    #     x0, n0 = getSig(t, F0, FP, FS, SNR)
+    #     fN0 = _testPoint(n0,F0)
+    #     fX0 = _testPoint(x0,F0)
+    #     fSig = _testPoint(x0 + n0,F0)
+    #     # print("x0:{},n0:{},x0 + n0:{}".format(fX0,fN0,fSig))
+    #     fN0Rec.append(fN0)
+    #     fSigRec.append(fSig)
+    #     plt.scatter(fN0,fN0,c='red')
+    #     plt.scatter(fSig,fSig,c='green')
+    #     print("{}%".format(i / nPoints * 100))
+
+    # # plt.savefig("{}db.png".format(SNR))
+    # plt.show()
+    # X = np.reshape(np.array(fN0Rec+fSigRec),[-1,1])
+    # y = np.array(([0] * len(fN0Rec))+([1] * len(fSigRec)))
+    # model = svm.SVC(kernel='linear')
+    for snr in range(-45,-61,-1):
+        with open("{}.pkl".format(snr),'rb') as f:
+            X,y = pkl.load(f)
+        rIdx = np.array(list(range(len(X))))
+        np.random.shuffle(rIdx)
+        X = X[rIdx]
+        y = y[rIdx]
+        X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=.4,random_state=0)
+        model = svm.SVC(kernel='linear')#tree.DecisionTreeClassifier()
+        model.fit(X_train,y_train)
+        acc = model.score(X_test,y_test)
+        print("{} db, Acc:{}".format(snr,acc))
 def jiangpinDemo():
     x0, n0 = getSig(t, F0, FP, FS, SNR)
     # _,n1 = getNoiseFix(t,F0,FP,FS,SNR)
@@ -348,4 +417,5 @@ def jiangpinDemo():
     showInF(sig1,600,FS)
     plt.show()
 if __name__ == "__main__":
-    test()
+    dataGeneration()
+    # testSinglePoint()
