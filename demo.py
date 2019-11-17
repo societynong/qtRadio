@@ -346,7 +346,7 @@ def _testPoint(sig,f0):
 
 
 def dataGeneration():
-    for snr in range(-45,-61,-1):
+    for snr in range(-55,-56,-1):
         if snr == -55:
             continue
         nPoints = 600
@@ -387,8 +387,8 @@ def testSinglePoint():
     # X = np.reshape(np.array(fN0Rec+fSigRec),[-1,1])
     # y = np.array(([0] * len(fN0Rec))+([1] * len(fSigRec)))
     # model = svm.SVC(kernel='linear')
-    for snr in range(-45,-61,-1):
-        with open("{}.pkl".format(snr),'rb') as f:
+    for snr in range(-56,-61,-1):
+        with open("{}raw.pkl".format(snr),'rb') as f:
             X,y = pkl.load(f)
         rIdx = np.array(list(range(len(X))))
         np.random.shuffle(rIdx)
@@ -417,5 +417,5 @@ def jiangpinDemo():
     showInF(sig1,600,FS)
     plt.show()
 if __name__ == "__main__":
+    # dataGeneration()
     dataGeneration()
-    # testSinglePoint()
