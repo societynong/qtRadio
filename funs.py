@@ -109,7 +109,7 @@ def srFun(a,b,h,sig):
 
 def getInF(sig,fS):
     fMaxN = int(len(sig) // 2)
-    sigF = np.abs(np.fft.fft(sig))[:fMaxN] / len(sig)
-    f = np.arange(fMaxN) / fMaxN * fS
+    sigF = np.abs(np.fft.fft(sig))[:fMaxN] 
+    f = np.arange(fMaxN) / fMaxN * fS / 2
     return sigF,f
 
