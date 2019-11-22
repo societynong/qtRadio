@@ -388,7 +388,7 @@ def dataGeneration(start,stop,step,featureName):
         filetoSave = "features\\test\\{}{}.pkl".format(snr,featureName)
         if os.path.exists(filetoSave):
             continue
-        nPoints = 100
+        nPoints = 400
         fN0Rec = []
         fSigRec = []
         for i in range(nPoints):
@@ -403,7 +403,7 @@ def dataGeneration(start,stop,step,featureName):
             # fN0 = getAcmFeature(n0,10000,10000,FS,F0)
             # fN0 = getAcmHalFeature(n0,FS,F0)
             # fN0 = getSTFTFeature(n0,FS,10000)
-            fN0 = getFakeFeature(n0,FS,F0,4)
+            fN0 = getFakeFeature(n0,FS,F0,8)
             x0, n0 = getSig(t, F0, FP, FS, snr)
             # fSig = getAcmSig(x0 + n0,200,200)            
             # sig = (sig - sig[np.arange(len(sig) - 1,-1,-1)]) / 2
@@ -413,7 +413,7 @@ def dataGeneration(start,stop,step,featureName):
             # fSig = getAcmFeature(x0 + n0,10000,10000,FS,F0)
             # fSig = getAcmHalFeature(x0 + n0,FS,F0)
             # fSig = getSTFTFeature(x0 + n0,FS,10000)
-            fSig = getFakeFeature(x0+n0,FS,F0,4)
+            fSig = getFakeFeature(x0+n0,FS,F0,8)
 
             fN0Rec.append(fN0)
             fSigRec.append(fSig)
@@ -456,7 +456,7 @@ def testSinglePoint(start,stop,step,featureName):
             X,y = pkl.load(f)
         rIdx = np.array(list(range(len(X))))
         np.random.shuffle(rIdx)
-        X = X[rIdx,:200]
+        X = X[rIdx]
         y = y[rIdx]
         # fnw = FeatureNet().cuda()
         # StandardScaler().fit_transform(X)
@@ -474,7 +474,7 @@ def testSinglePoint(start,stop,step,featureName):
         # model = MLPClassifier()
         model.fit(X_train,y_train)
         acc = cross_val_score(model,X_test,y_test,cv=5,scoring='accuracy')#model.score(X_test,y_test)
-        print("{} db, Acc:{}".format(snr,acc))
+        print("{} db, Acc:{},Mean:{}".format(snr,acc,np.mean(acc)))
 def jiangpinDemo():
     x0, n0 = getSig(t, F0, FP, FS, SNR)
     # _,n1 = getNoiseFix(t,F0,FP,FS,SNR)
@@ -638,11 +638,41 @@ def getFakeFeature(sig,fS,f0,epoch):
 
 def fakeAcm(sig,fS,f0,epoch):
     sigAcm = 0
-    for _ in range(epoch):
-        sigAcm = sigAcm + generateFakeSig(sig,fS,f0)
+    nT = int(fS // f0)
+    nW = int(len(sig) // nT)
+    orders = np.zeros((epoch,nT,nW),np.int)
+    for i in range(epoch):
+        for j in range(nT):
+            orders[i][j] = np.arange(int(len(sig) / fS * f0))
+            np.random.shuffle(orders[i][j])
+    
+    with open('order\\{}.pkl'.format(epoch),'rb') as f:
+        orders = pkl.load(f)
+    
+    for e in range(epoch):
+        # sigAcm = sigAcm + generateFakeSigV2(sig,fS,f0)
+        sigAcm = sigAcm + generateFakeSigV4(sig,fS,f0,orders[e])
+    with open('order\\{}.pkl'.format(epoch),'wb') as f:
+        pkl.dump(orders,f)
     return sigAcm / epoch
 
+def generateFakeSigV4(sig,fS,f0,order):
+    nT = int(fS // f0)
+    nW = int(len(sig) // nT)
+    fakeSig = np.zeros(len(sig))
+    for nt in range(nT):
+        for nw in range(nW):
+            fakeSig[nw * nT + nt] = sig[order[nt][nw] * nT + nt]
+    return fakeSig
 
+def generateFakeSigV3(sig,fS,f0,order):
+    nT = int(fS // f0)
+    nW = int(len(sig) // nT)
+    fakeSig = np.zeros(len(sig))
+    idx = np.arange(nW)
+    for iT in range(nT):
+        fakeSig[idx * nT + iT] = sig[order * nT + iT] 
+    return fakeSig
 def generateFakeSigV2(sig,fS,f0):
     nT = int(fS // f0)
     nW = int(len(sig) // nT)
@@ -654,39 +684,60 @@ def generateFakeSigV2(sig,fS,f0):
         fakeSig[idx * nT + iT] = sig[order * nT + iT] 
     return fakeSig
 
+def getAcmF(sig,w,s):
+    fAcm = 0
+    for i in range(0,len(sig) - w,s):
+        fAcm += np.abs(np.fft.fft(sig[i:i+w]))
+    return fAcm / len(range(0,len(sig) - w,s))
 
+
+def getAcmOpt(n,epoch):
+    fakeN = 0
+    for _ in range(epoch):
+        idx = np.arange(len(n))
+        np.random.shuffle(idx)
+        fakeN += n[idx]
+    return fakeN / epoch
 def testFake():
-    epoch = 4
-    x0,n0 = getSig(t[:10000 * 60 * 20],F0,FP,FS,-53)
+    # while True:
+    epoch = 4 #----9db
+    win = 10000
+    x0,n0 = getSig(t[:10000 * 60 * 20],F0,FP,FS,-60)
+    print(snr(x0,n0))
+    # n1 = (fakeAcm(n0,FS,F0,epoch) - fakeAcm(n0[::-1],FS,F0,epoch)) / 2
     n1 = fakeAcm(n0,FS,F0,epoch)
-    sig1 = n1 + x0
+    # n1 = getAcmOpt(n0,epoch)
+    n1 = (n1 - n1[::-1]) / 2
     # n1 = (n1 - n1[::-1]) / 2
-    # sig1 = x0 + n1 
-    # n1 = sig1 - x0
-    # sig1 = getAcmSig(sig1,10000,10000)
-    # n1 = getAcmSig(n1,10000,10000)
-    # sig1 = (sig1 - sig1[np.arange(len(sig1) - 1, -1, -1)]) / 2
-    # n1 = (n1 - n1[np.arange(len(n1) - 1, -1, -1)]) / 2
-    # print("Gain:{}db".format(snr(x0,n1) - snr(x0,n0)))
-    # print("Theory:{}db".format(10 * np.log10(epoch)))
-    sig1Acm = getAcmSig(sig1,10000,10000)
-    n1Acm = getAcmSig(n1,10000,10000)
+    sig1 = n1 + x0
+    sig1Acm = getAcmSig(sig1,win,win)
+    n1Acm = getAcmSig(n1,win,win)
     plt.figure()
     plt.subplot(2,1,1)
-    # showInFDetail(sig1,FP,FS,F0)
     showInFDetail(sig1Acm,FP,FS,F0)
-    # showInT(sig1Acm,FS)
-    # plt.subplot(2,2,2)
-    # showInFDetail(n1,FP,FS,F0)
-    # showInF(sig1Acm,FP,FS)
-    # showInT(n0[:300],FS)
-    # plt.figure()
-    # plt.subplot(2,1,3)
-    # showInF(sig1Acm,FP,FS)
     plt.subplot(2,1,2)
     showInFDetail(n1Acm,FP,FS,F0)
-    # showInT(n1,FS)
     plt.show()
+    # sig1AcmF = getAcmF(sig1,win,win)[:int(FP / (FS / win))]
+    # n1AcmF = getAcmF(n1,win,win)[:int(FP / (FS / win))]
+    # plt.figure()
+    # plt.subplot(2,1,1)
+    # plt.plot(sig1AcmF)
+    # plt.subplot(2,1,2)
+    # plt.plot(n1AcmF)
+
+    # x1 = getAcmSig(x0,10000,10000)
+    # n1AcmF = np.abs(np.fft.fft(n1Acm))[:int(FP / (FS / len(n1Acm)))]
+    # agn = np.angle(np.fft.fft(n1Acm)[int(F0 / (FS / len(n1Acm)))]) / np.pi * 180
+    # agx = np.angle(np.fft.fft(x1)[int(F0 / (FS / len(x1)))]) / np.pi * 180
+    # apn = n1AcmF[int(F0 / (FS / len(n1Acm)))]
+    # apn / np.mean(np.concatenate((n1AcmF[:int(F0 / (FS / len(n1Acm)))],n1AcmF[int(F0 / (FS / len(n1Acm))):])))
+    # print("angle of 100Hz n1Acm:{}".format(agn))
+    # print("angle of 100Hz :{}".format(agx))
+    # print("amplitude of 100Hz noise:{}".format(apn))
+    # if apn < 4:
+    #     break
+    
 def testMirrorSnr():
     x0,n0 = getSig(t,F0,FP,FS,-60)
     win = 10000
@@ -727,13 +778,14 @@ def showFeature(st,sp,se,featureName):
                 plt.scatter(X[i],X[i],c = 'b')
         plt.show()
 if __name__ == "__main__":
+    pass
     # testFake()
     # testMirrorSnr()
     # testSTFT()
-    st = -53
-    sp = -54
-    se = -1
-    featureName = 'Fake'
-    # dataGeneration(st,sp,se,featureName)
-    testSinglePoint(st,sp,se,featureName)
-    # showFeature(st,sp,se,featureName)
+    # st = -53
+    # sp = -54
+    # se = -1
+    # featureName = 'Fake'
+    # # dataGeneration(st,sp,se,featureName)
+    # testSinglePoint(st,sp,se,featureName)
+    # # showFeature(st,sp,se,featureName)
