@@ -777,8 +777,25 @@ def showFeature(st,sp,se,featureName):
             elif y[i] == 1:
                 plt.scatter(X[i],X[i],c = 'b')
         plt.show()
+
+def sigOrNoise():
+    x0,n0 = getSig(t,F0,FP,FS,-60)
+    n0F = np.fft.fft(n0)
+    n0F0 = np.zeros(len(n0F),dtype=complex)
+    n0F0[int(F0 / (FS / len(n0F)))] = n0F[int(F0 / (FS / len(n0F)))]
+    n0F0[-int(F0 / (FS / len(n0F)))] = n0F[-int(F0 / (FS / len(n0F)))]
+    n0x0 = np.real(np.fft.ifft(n0F0))
+    plt.figure()
+    plt.subplot(3,1,1)
+    plt.plot(x0[:200])
+    plt.subplot(3,1,2)
+    plt.plot(n0x0[:200])
+    plt.subplot(3,1,3)
+    plt.plot(x0[:200]+n0x0[:200])
+
+    plt.show()
 if __name__ == "__main__":
-    pass
+    sigOrNoise()
     # testFake()
     # testMirrorSnr()
     # testSTFT()
