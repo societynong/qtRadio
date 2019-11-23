@@ -779,19 +779,30 @@ def showFeature(st,sp,se,featureName):
         plt.show()
 
 def sigOrNoise():
-    x0,n0 = getSig(t,F0,FP,FS,-60)
+    snr = -60
+    x0,n0 = getSig(t,F0,FP,FS,snr)
+
+    x0F = np.fft.fft(x0)
+
     n0F = np.fft.fft(n0)
     n0F0 = np.zeros(len(n0F),dtype=complex)
     n0F0[int(F0 / (FS / len(n0F)))] = n0F[int(F0 / (FS / len(n0F)))]
     n0F0[-int(F0 / (FS / len(n0F)))] = n0F[-int(F0 / (FS / len(n0F)))]
     n0x0 = np.real(np.fft.ifft(n0F0))
+    
     plt.figure()
     plt.subplot(3,1,1)
     plt.plot(x0[:200])
+    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(x0),1 / np.pi * 180 * np.angle(x0F[int(F0 / (FS / len(n0F)))])))
     plt.subplot(3,1,2)
     plt.plot(n0x0[:200])
+    if snr < -60:
+        plt.ylim([-1,1])
+    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(n0x0),1 / np.pi * 180 * np.angle(n0F0[int(F0 / (FS / len(n0F)))])))
     plt.subplot(3,1,3)
     plt.plot(x0[:200]+n0x0[:200])
+    plt.ylim([-1,1])
+    plt.title('SNR:{}db,Amplitude:{:.2f}'.format(snr,np.max(x0 + n0x0)))
 
     plt.show()
 if __name__ == "__main__":
