@@ -819,8 +819,9 @@ def sigOrNoise(sig,fS = FS,f0 = F0):
     sgpSig,sgpSigF0 = getSinglePointSig(sig,FS,F0)
     
     
-    plt.plot(sgpSig[:200])
-    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(sgpSig),1 / np.pi * 180 * np.angle(sgpSigF0)))
+    plt.plot(sgpSig)
+    plt.xlim([0,200])
+    plt.title('Amplitude:{:.2f},Phase:{:.2f}'.format(np.max(sgpSig),1 / np.pi * 180 * np.angle(sgpSigF0)))
 
 
 
