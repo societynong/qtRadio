@@ -383,12 +383,26 @@ def getAcmHalFeature(sig,fs,f0):
         flag *= -1
     return (feature / len(range(0 , len(sig) - W, W))).tolist()
 
+
+def getFinalFeature(sig,fS,f0):
+    sigF = np.fft.fft(sig)
+    df = fS / len(sigF)
+    f = np.arange(len(sig)) / len(sig) * FS
+    f2N = np.where(np.abs(f - f0) < df / 2)[0][0]
+    sigF0 = np.zeros(len(sigF),dtype=complex)
+    sigF0[f2N] = sigF[f2N]
+    sigF0[-f2N] = sigF[-f2N]
+    
+    featureFinal = np.real(np.fft.ifft(sigF0))
+    featureFinal = getAcmSig(featureFinal,200,200)
+    return featureFinal.tolist()
+
 def dataGeneration(start,stop,step,featureName):
     for snr in range(start,stop,step):
         filetoSave = "features\\test\\{}{}.pkl".format(snr,featureName)
         if os.path.exists(filetoSave):
             continue
-        nPoints = 400
+        nPoints = 200
         fN0Rec = []
         fSigRec = []
         for i in range(nPoints):
@@ -403,7 +417,8 @@ def dataGeneration(start,stop,step,featureName):
             # fN0 = getAcmFeature(n0,10000,10000,FS,F0)
             # fN0 = getAcmHalFeature(n0,FS,F0)
             # fN0 = getSTFTFeature(n0,FS,10000)
-            fN0 = getFakeFeature(n0,FS,F0,8)
+            # fN0 = getFakeFeature(n0,FS,F0,8)
+            fN0 = getFinalFeature(n0,FS,F0)
             x0, n0 = getSig(t, F0, FP, FS, snr)
             # fSig = getAcmSig(x0 + n0,200,200)            
             # sig = (sig - sig[np.arange(len(sig) - 1,-1,-1)]) / 2
@@ -413,8 +428,14 @@ def dataGeneration(start,stop,step,featureName):
             # fSig = getAcmFeature(x0 + n0,10000,10000,FS,F0)
             # fSig = getAcmHalFeature(x0 + n0,FS,F0)
             # fSig = getSTFTFeature(x0 + n0,FS,10000)
-            fSig = getFakeFeature(x0+n0,FS,F0,8)
-
+            # fSig = getFakeFeature(x0+n0,FS,F0,8)\
+            fSig = getFinalFeature(x0 + n0,FS,F0)
+            # plt.figure()
+            # plt.subplot(2,1,1)
+            # showInT(fN0,FS)
+            # plt.subplot(2,1,2)
+            # showInT(fSig,FS)
+            # plt.show()
             fN0Rec.append(fN0)
             fSigRec.append(fSig)
             print("{}% of {}db".format(i / nPoints * 100,snr))
@@ -778,42 +799,40 @@ def showFeature(st,sp,se,featureName):
                 plt.scatter(X[i],X[i],c = 'b')
         plt.show()
 
-def sigOrNoise():
-    snr = -60
-    x0,n0 = getSig(t,F0,FP,FS,snr)
 
-    x0F = np.fft.fft(x0)
 
-    n0F = np.fft.fft(n0)
-    n0F0 = np.zeros(len(n0F),dtype=complex)
-    n0F0[int(F0 / (FS / len(n0F)))] = n0F[int(F0 / (FS / len(n0F)))]
-    n0F0[-int(F0 / (FS / len(n0F)))] = n0F[-int(F0 / (FS / len(n0F)))]
-    n0x0 = np.real(np.fft.ifft(n0F0))
+def getSinglePointSig(sig,fS,f0):
+    df = fS / len(sig)
+    f = np.arange(len(sig)) / len(sig) * fS
+    f02N = np.where(np.abs(f - f0) < df / 2)[0][0]
+    sigF = np.fft.fft(sig)
+    singlePointSigF = np.zeros(len(sigF),dtype=complex)
+    singlePointSigF[f02N] = sigF[f02N]
+    singlePointSigF[-f02N] = sigF[-f02N]
+
+    singlePointSig = np.real(np.fft.ifft(singlePointSigF))
+    return singlePointSig,singlePointSigF[f02N]
+
+
+def sigOrNoise(sig,fS = FS,f0 = F0):
     
-    plt.figure()
-    plt.subplot(3,1,1)
-    plt.plot(x0[:200])
-    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(x0),1 / np.pi * 180 * np.angle(x0F[int(F0 / (FS / len(n0F)))])))
-    plt.subplot(3,1,2)
-    plt.plot(n0x0[:200])
-    if snr < -60:
-        plt.ylim([-1,1])
-    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(n0x0),1 / np.pi * 180 * np.angle(n0F0[int(F0 / (FS / len(n0F)))])))
-    plt.subplot(3,1,3)
-    plt.plot(x0[:200]+n0x0[:200])
-    plt.ylim([-1,1])
-    plt.title('SNR:{}db,Amplitude:{:.2f}'.format(snr,np.max(x0 + n0x0)))
+    sgpSig,sgpSigF0 = getSinglePointSig(sig,FS,F0)
+    
+    
+    plt.plot(sgpSig[:200])
+    plt.title('SNR:{}db,Amplitude:{:.2f},Phase:{:.2f}'.format(snr,np.max(sgpSig),1 / np.pi * 180 * np.angle(sgpSigF0)))
 
-    plt.show()
-if __name__ == "__main__":
-    sigOrNoise()
-    # testFake()
-    # testMirrorSnr()
-    # testSTFT()
-    # st = -53
-    # sp = -54
-    # se = -1
-    # featureName = 'Fake'
-    # # dataGeneration(st,sp,se,featureName)
-    # testSinglePoint(st,sp,se,featureName)
-    # # showFeature(st,sp,se,featureName)
+
+
+# if __name__ == "__main__":
+#     sigOrNoise()
+#     # testFake()
+#     # testMirrorSnr()
+#     # testSTFT()
+#     # st = -53
+#     # sp = -54
+#     # se = -1
+#     # featureName = 'Fake'
+#     # # dataGeneration(st,sp,se,featureName)
+#     # testSinglePoint(st,sp,se,featureName)
+#     # # showFeature(st,sp,se,featureName)
