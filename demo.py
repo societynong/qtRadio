@@ -65,15 +65,22 @@ def srFunMine(a,b,h,sig):
     for i in range(1,len(u)):
         u[i] =u[i - 1] + h * (a * u[i - 1] - b * u[i - 1] ** 3 + sig[i - 1])
     return u
-def getSig(t,F0,FP,FS,SNR):
-    x0 = np.sin(2*np.pi*F0*t)
+def getSig(dur,f0,fP,fS,snr):
+    t = np.arange(dur * fS) / fS
+    x0 = np.sin(2*np.pi*f0 * t)
     ns = np.random.randn(len(t))
-    ns = funs.butter_filter(ns,10,FP,FS,'lowpass')
+    # ns = funs.butter_filter(ns,10,FP,FS,'lowpass')
+    nsF = np.fft.fft(ns)
+    df = fS / len(ns)
+    f = np.arange(len(ns)) / len(ns) * fS
+    fPN = np.where(np.abs(f - fP) < df / 2)[0][0]
+    nsF[fPN + 1 : len(nsF) - fPN] = np.zeros(len(nsF[fPN + 1 : len(nsF) - fPN]))
+    ns = np.real(np.fft.ifft(nsF))
     ns = ns - np.mean(ns)
 
     sigPower = 1 / len(t) * np.sum(x0 * x0)
 
-    nsiPower = sigPower / (10**(SNR / 10))
+    nsiPower = sigPower / (10**(snr / 10))
     ns = np.sqrt(nsiPower) / np.std(ns) * ns
 
     return x0 , ns
@@ -81,7 +88,7 @@ def getSig(t,F0,FP,FS,SNR):
 def getNoiseFix(t,F0,FP,FS,SNR):
     x0 = np.sin(2*np.pi*F0*t)
     ns = np.random.randn(len(t))
-    ns = funs.butter_filter(ns,10,FP,FS,'highpass')
+    ns = funs.butter_filter(ns,3,FP,FS,'highpass')
     sigPower = 1 / N * np.sum(x0 * x0)
 
     nsiPower = sigPower / (10**(SNR / 10))
@@ -98,7 +105,7 @@ def showInF(sig,fMax,fS):
     NFFT = len(sig)
     F_SHOW = int(fMax // (fS / NFFT))
     F_ABS = np.abs(np.fft.fft(sig)[:NFFT // 2]) / len(sig)
-    f = np.arange(F_SHOW) / NFFT * FS
+    f = np.arange(F_SHOW) / NFFT * fS
     plt.plot(f[:F_SHOW],F_ABS[:F_SHOW])
     plt.xlabel("Hz")
     # plt.title("Max F:{}".format(f[np.argmax(F_ABS[:F_SHOW])]))
@@ -165,7 +172,8 @@ def selIMF(imfs,sig):
 
 def snr(x,n):
     return 10 * np.log10(np.sum(x**2) / np.sum(n ** 2))
-
+def getSnr(x,n):
+    return 10 * np.log10(np.sum(x**2) / np.sum(n ** 2))
 
 def lineMap(mi,mx,sig): 
     return (sig - np.min(sig)) / (np.max(sig) - np.min(sig)) * (mx - mi) + mi
