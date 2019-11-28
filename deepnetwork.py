@@ -63,3 +63,54 @@ class FeatureNet(nn.Module):
         otpt = self.classfier(x)
         _,pred = torch.max(otpt,1)
         return pred
+
+
+class NNClassifier(nn.Module):
+    def __init__(self,inputDim,lr):
+        super(NNClassifier,self).__init__()
+        hiddenDim = int(inputDim * 1.2)
+        outputDim = 2
+        self.networks = nn.Sequential(
+            nn.BatchNorm1d(inputDim),
+            nn.Linear(inputDim,hiddenDim),
+            nn.ReLU(),
+            nn.BatchNorm1d(hiddenDim),
+            nn.Linear(hiddenDim,outputDim),
+            nn.Softmax()
+        )
+        if torch.cuda.is_available():
+            self.networks = self.networks.cuda()
+
+        self.crit = nn.CrossEntropyLoss()
+        self.opt = torch.optim.Adam(self.networks.parameters(),lr)\
+
+    def forward(self,x):
+        x = torch.Tensor(x)
+        if torch.cuda.is_available():
+            x = x.cuda()
+        otpt = self.networks(x)
+        _,pred = torch.max(otpt,1)
+        return pred
+
+
+    def fit(self,X,y):
+        batch_size = 50
+        X = torch.Tensor(X)
+        y = torch.Tensor(y)
+        if torch.cuda.is_available():
+            X = X.cuda()
+            y = y.cuda()
+        dataset = torch.utils.data.TensorDataset(X,y)
+        loader = torch.utils.data.DataLoader(dataset,batch_size,True)
+        for epoch in range(400):
+            for i,data in enumerate(loader):
+                input,label = data
+
+                self.opt.zero_grad()
+
+                otpt = self.networks(input)
+                loss = self.crit(otpt,label.long())
+                loss.backward()
+                self.opt.step()
+                if epoch % 50 == 0:
+                    print('[%d, %5d] loss: %.4f' %(epoch + 1, (i+1)*batch_size, loss.item()))
