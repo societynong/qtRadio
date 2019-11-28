@@ -414,7 +414,7 @@ def dataGeneration(start,stop,step,featureName):
         fN0Rec = []
         fSigRec = []
         for i in range(nPoints):
-            x0, n0 = getSig(t, F0, FP, FS, snr)
+            x0, n0 = getSig(DUR, F0, FP, FS, snr)
             # fN0 = getAcmSig(n0,200,200)
             # sig = (sig - sig[np.arange(len(sig) - 1,-1,-1)]) / 2
             # sig = sig - np.mean(sig)
@@ -427,7 +427,7 @@ def dataGeneration(start,stop,step,featureName):
             # fN0 = getSTFTFeature(n0,FS,10000)
             # fN0 = getFakeFeature(n0,FS,F0,8)
             fN0 = getFinalFeature(n0,FS,F0)
-            x0, n0 = getSig(t, F0, FP, FS, snr)
+            x0, n0 = getSig(DUR, F0, FP, FS, snr)
             # fSig = getAcmSig(x0 + n0,200,200)            
             # sig = (sig - sig[np.arange(len(sig) - 1,-1,-1)]) / 2
             # sig = sig - np.mean(sig)
