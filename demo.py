@@ -405,12 +405,10 @@ def getFinalFeature(sig,fS,f0):
     featureFinal = getAcmSig(featureFinal,200,200)
     return featureFinal.tolist()
 
-def dataGeneration(start,stop,step,featureName):
+def dataGeneration(start,stop,step,featureName,nPoints = 200):
     for snr in range(start,stop,step):
         filetoSave = "features\\test\\{}{}.pkl".format(snr,featureName)
-        if os.path.exists(filetoSave):
-            continue
-        nPoints = 200
+        
         fN0Rec = []
         fSigRec = []
         for i in range(nPoints):
@@ -447,8 +445,19 @@ def dataGeneration(start,stop,step,featureName):
             fN0Rec.append(fN0)
             fSigRec.append(fSig)
             print("{}% of {}db".format(i / nPoints * 100,snr))
-        X = np.array(fN0Rec+fSigRec)
-        y = np.array(([0] * len(fN0Rec))+([1] * len(fSigRec)))
+        
+        XList = fN0Rec+fSigRec
+        yList = ([0] * len(fN0Rec))+([1] * len(fSigRec))
+
+        if os.path.exists(filetoSave):
+            with open(filetoSave,'rb') as f:
+                XOld,yOld = pkl.load(f)
+            XList += XOld.tolist()
+            yList += yOld.tolist()
+            
+
+        X = np.array(XList)
+        y = np.array(yList)
         with open(filetoSave,'wb') as f:
             pkl.dump((X,y),f)
 
